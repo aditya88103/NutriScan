@@ -1,18 +1,17 @@
-# MintScan Health
+# NutriScan
 
-Mobile-first barcode scanner that fetches product data from Open Food Facts and shows a simple health score.
+NutriScan is a mobile-first barcode scanner that pulls product data from Open Food Facts and shows a simple nutrition score (0–10).
 
 ## Features
-- Live barcode scanning (camera)
+- Fast live scanning (BarcodeDetector when available, with Quagga fallback)
+- Flashlight toggle (when supported by device/browser)
 - Manual barcode entry
-- Health score with quick breakdown
-- Local scan history
-- Flashlight toggle (when supported)
+- Nutrition score with quick breakdown
+- Product details + nutrition table + ingredients/allergen highlights (only shows available fields)
+- Local scan history (stored on-device, no account)
 
-## Tech
-- Vanilla HTML/CSS/JS
-- Quagga (barcode scanning fallback)
-- Open Food Facts API
+## Data Source
+NutriScan uses Open Food Facts (community-powered). Coverage varies, so some Indian products may be missing or incomplete.
 
 ## Getting Started
 Camera access requires HTTPS or localhost. Run a local server:
@@ -41,4 +40,4 @@ http://localhost:5173
 ## Roadmap
 - Multi-language UI (Hindi + English)
 - Better product insights for Indian brands
-- Offline-friendly history and caching
+- Offline-friendly history + caching

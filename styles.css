@@ -240,6 +240,63 @@
         overflow-wrap: anywhere;
       }
 
+      .note {
+        padding: 10px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .fgrid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .fitem {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 10px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .ficon {
+        width: 44px;
+        height: 44px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(0, 201, 167, 0.28);
+        background: rgba(0, 201, 167, 0.12);
+        box-shadow: 0 16px 36px rgba(0, 201, 167, 0.08);
+      }
+
+      .ficon .icon {
+        width: 20px;
+        height: 20px;
+        stroke: rgba(0, 201, 167, 0.95);
+      }
+
+      .ft {
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
+      }
+
+      .fs {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+
       .grid2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -849,7 +906,7 @@
         justify-content: center;
         text-align: center;
         pointer-events: none;
-        gap: 2px;
+        gap: 0;
         padding: 0 10px;
       }
 
@@ -861,7 +918,7 @@
       }
 
       .ring-center .lab {
-        margin-top: 0;
+        margin-top: -2px;
         font-size: 11px;
         color: var(--muted);
         line-height: 1.2;

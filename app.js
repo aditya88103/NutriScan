@@ -1,8 +1,8 @@
 ﻿(function initMintScan() {
         const $ = (sel) => document.querySelector(sel);
-        const VERSION = "20260403-01";
+        const VERSION = "20260403-02";
 
-        window.MintScan = {
+        window.NutriScan = {
           VERSION,
           $,
           screens: {
@@ -59,7 +59,8 @@
             historyStrip: $("#history-strip"),
             btnClearHistory: $("#btn-clear-history"),
           },
-           STORAGE_KEY: "mintscan_history_v1",
+           STORAGE_KEY: "nutriscan_history_v1",
+           LEGACY_STORAGE_KEYS: ["mintscan_history_v1"],
            state: {
              scanning: false,
              lastCode: null,
@@ -166,7 +167,7 @@
         }
 
         M.util = { clamp, sleep, escapeHtml, num, fmt, toast, showScreen, setActiveNav, openModal, closeModal, normalizeBarcode };
-      })(window.MintScan);
+      })(window.NutriScan);
 
 (function healthModule(M) {
         const { clamp, num } = M.util;
@@ -275,7 +276,7 @@
         }
 
         M.health = { classifyScore, computeHealthScore, scoreTo10, formatScore10 };
-      })(window.MintScan);
+      })(window.NutriScan);
 
 (function renderHelpers(M) {
         const { escapeHtml, num, fmt } = M.util;
@@ -454,7 +455,7 @@
         }
 
         M.render.helpers = { HARMFUL_KEYS, ingredientIsHarmful, nutriBadge, ecoBadge, novaBadge, labelBadges, kvCard, nutriDot, extractIngredients, extractAllergens, num, fmt };
-      })(window.MintScan);
+      })(window.NutriScan);
 
 (function renderModule(M) {
         const { els, state } = M;
@@ -598,7 +599,7 @@
           }
 
           const metaParts = [];
-          metaParts.push(`<span class="badge badge--mint"><b>Health</b> ${escapeHtml(health.grade.label)}</span>`);
+          metaParts.push(`<span class="badge badge--mint"><b>Nutri</b> ${escapeHtml(health.grade.label)}</span>`);
           metaParts.push(H.nutriBadge(product?.nutriscore_grade));
 
           const addN = health.metrics.additivesCount ?? 0;
@@ -676,19 +677,39 @@
         }
 
         M.render = { ...M.render, renderNutritionTable, renderIngredients, renderDetails, renderProductHeader, renderScore };
-      })(window.MintScan);
+      })(window.NutriScan);
 
 (function historyModule(M) {
-        const { els, state, STORAGE_KEY } = M;
+        const { els, state, STORAGE_KEY, LEGACY_STORAGE_KEYS } = M;
           const { escapeHtml, toast } = M.util;
           const { classifyScore, formatScore10 } = M.health;
 
         function loadHistory() {
           try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : [];
+            const fromKey = (key) => {
+              const raw = localStorage.getItem(key);
+              if (!raw) return [];
+              const parsed = JSON.parse(raw);
+              return Array.isArray(parsed) ? parsed : [];
+            };
+
+            const current = fromKey(STORAGE_KEY);
+            if (current.length) return current;
+
+            const legacyKeys = Array.isArray(LEGACY_STORAGE_KEYS) ? LEGACY_STORAGE_KEYS : [];
+            for (const key of legacyKeys) {
+              const legacy = fromKey(key);
+              if (!legacy.length) continue;
+              saveHistory(legacy);
+              try {
+                localStorage.removeItem(key);
+              } catch {
+                // ignore
+              }
+              return legacy;
+            }
+
+            return [];
           } catch {
             return [];
           }
@@ -760,7 +781,7 @@
         }
 
         M.history = { loadHistory, saveHistory, addToHistory, renderHistory, clearHistory };
-      })(window.MintScan);
+      })(window.NutriScan);
 
 (function apiModule(M) {
         const { els, state } = M;
@@ -860,36 +881,116 @@
         async function fetchProduct(barcode) {
           const code = normalizeBarcode(barcode);
           if (!code) throw new Error("INVALID");
+
+          const candidates = [];
+          const pushCandidate = (value) => {
+            const normalized = normalizeBarcode(value);
+            if (!normalized) return;
+            if (!candidates.includes(normalized)) candidates.push(normalized);
+          };
+
+          // Common barcode variants:
+          // - UPC-A (12) is often stored as EAN-13 with leading 0
+          pushCandidate(code);
+          if (code.length === 12) pushCandidate(`0${code}`);
+          if (code.length === 13 && code.startsWith("0")) pushCandidate(code.slice(1));
+
+          const IN_BASE = "https://in.openfoodfacts.org";
+          const WORLD_BASE = "https://world.openfoodfacts.org";
+
           const fields = buildFieldsParam();
-          const v2Url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?${fields}`;
-          const v0Url = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`;
-          const searchUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(
-            code
-          )}&search_simple=1&action=process&json=1&page_size=1`;
+          const urls = [];
 
-          try {
-            return await fetchProductFrom(v2Url, { timeoutMs: 6500, cache: "no-store" });
-          } catch (e) {
-            if (e?.code === "NOT_FOUND") throw e;
+          for (const c of candidates) {
+            urls.push({
+              kind: "product",
+              url: `${IN_BASE}/api/v2/product/${encodeURIComponent(c)}.json?${fields}`,
+              timeoutMs: 5500,
+            });
+            urls.push({
+              kind: "product",
+              url: `${WORLD_BASE}/api/v2/product/${encodeURIComponent(c)}.json?${fields}`,
+              timeoutMs: 6500,
+            });
           }
 
-          try {
-            return await fetchProductFrom(v0Url, { timeoutMs: 8500, cache: "no-store" });
-          } catch (e) {
-            if (e?.code === "NOT_FOUND") throw e;
+          for (const c of candidates) {
+            urls.push({
+              kind: "product",
+              url: `${WORLD_BASE}/api/v0/product/${encodeURIComponent(c)}.json`,
+              timeoutMs: 7500,
+            });
           }
 
-          // Last resort: search endpoint (sometimes returns products even when product endpoint fails)
-          const res = await safeFetch(searchUrl, { timeoutMs: 9000, cache: "no-store" });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          const product = data?.products?.[0] ?? null;
-          if (!product) {
+          for (const c of candidates) {
+            urls.push({
+              kind: "search",
+              url: `${WORLD_BASE}/cgi/search.pl?search_terms=${encodeURIComponent(
+                c
+              )}&search_simple=1&action=process&json=1&page_size=1`,
+              timeoutMs: 8000,
+            });
+          }
+
+          let sawNotFound = false;
+          let lastError = null;
+
+          for (const item of urls) {
+            try {
+              if (item.kind === "search") {
+                const res = await safeFetch(item.url, { timeoutMs: item.timeoutMs, cache: "no-store" });
+
+                if (res.status === 404) {
+                  sawNotFound = true;
+                  continue;
+                }
+
+                if (!res.ok) {
+                  const err = new Error(`HTTP ${res.status}`);
+                  err.code = res.status === 429 ? "RATE_LIMIT" : "HTTP_ERROR";
+                  err.status = res.status;
+                  throw err;
+                }
+
+                let data;
+                try {
+                  data = await res.json();
+                } catch (e) {
+                  const err = new Error("BAD_JSON");
+                  err.code = "BAD_JSON";
+                  err.cause = e;
+                  throw err;
+                }
+
+                const product = data?.products?.[0] ?? null;
+                if (!product) {
+                  sawNotFound = true;
+                  continue;
+                }
+                return product;
+              }
+
+              return await fetchProductFrom(item.url, { timeoutMs: item.timeoutMs, cache: "no-store" });
+            } catch (e) {
+              if (e?.code === "NOT_FOUND") {
+                sawNotFound = true;
+                continue;
+              }
+              if (e?.code === "RATE_LIMIT") throw e;
+              lastError = e;
+            }
+          }
+
+          if (sawNotFound) {
             const err = new Error("NOT_FOUND");
             err.code = "NOT_FOUND";
             throw err;
           }
-          return product;
+          if (lastError) throw lastError;
+
+          const err = new Error("NOT_FOUND");
+          err.code = "NOT_FOUND";
+          throw err;
         }
 
         async function analyzeBarcode(barcode, { source = "scan" } = {}) {
@@ -970,7 +1071,7 @@
         }
 
         M.api = { fetchProduct, analyzeBarcode };
-      })(window.MintScan);
+      })(window.NutriScan);
 
 (function scannerModule(M) {
         const { els, state } = M;
@@ -1513,7 +1614,7 @@
         });
 
         M.scanner = { ensureSecureHint, setScanPill, startScanner, stopScanner, releaseCamera, toggleTorch };
-      })(window.MintScan);
+      })(window.NutriScan);
 
 (function bootModule(M) {
         const { els, state } = M;
@@ -1607,4 +1708,4 @@
         if (!ok && location.protocol !== "https:" && location.hostname !== "localhost") {
           M.scanner.setScanPill("Manual entry", "works anywhere");
         }
-      })(window.MintScan);
+      })(window.NutriScan);

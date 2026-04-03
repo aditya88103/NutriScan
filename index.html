@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0F0F1A" />
-    <title>MintScan Health</title>
+    <title>NutriScan</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,7 +12,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=20260403-01" />
+    <link rel="stylesheet" href="styles.css?v=20260403-02" />
   </head>
 
   <body>
@@ -27,8 +27,8 @@
             <div class="row">
               <div class="pill">
                 <span class="brand-mark" aria-hidden="true"></span>
-                <strong>MintScan</strong>
-                <span style="opacity: 0.85">Health</span>
+                <strong>NutriScan</strong>
+                <span style="opacity: 0.85">Nutrition</span>
               </div>
               <button class="icon-btn" id="btn-manual-open" aria-label="Manual entry">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -51,7 +51,9 @@
 
             <button class="icon-btn icon-btn--torch" id="btn-torch" aria-label="Flashlight off" aria-pressed="false">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M13 2L3 14h6l-1 8 10-12h-6z" />
+                <path d="M9 2h6v4l2 3v3H7V9l2-3V2Z" />
+                <path d="M10 14h4v8h-4z" />
+                <path d="M9 6h6" />
               </svg>
             </button>
           </div>
@@ -234,13 +236,13 @@
               <span class="brand-mark" aria-hidden="true"></span>
               <span>About</span>
             </div>
-            <span class="pill">Client-side only</span>
+            <span class="pill">Privacy-first</span>
           </div>
 
           <div class="card pad">
-            <div class="h1">MintScan Health</div>
+            <div class="h1">NutriScan</div>
             <div class="sub">
-              Scan a barcode to pull product data from Open Food Facts and estimate a simple health
+              Scan a barcode to pull product data from Open Food Facts and estimate a simple nutrition
               score (0-10). This is not medical advice. Always check the label and your dietary
               needs.
             </div>
@@ -250,6 +252,92 @@
               <span class="badge badge--mint"><b>Storage</b> History stays on device</span>
               <span class="badge"><b>API</b> Open Food Facts</span>
               <span class="badge"><b>Version</b> <span id="app-version">—</span></span>
+            </div>
+          </div>
+
+          <div class="card pad">
+            <div class="h1">Features</div>
+            <div class="sub">Designed to be fast, simple, and useful while shopping.</div>
+            <div style="height: 12px"></div>
+            <div class="fgrid" role="list">
+              <div class="fitem" role="listitem">
+                <div class="ficon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" class="icon">
+                    <path d="M4 7V6a2 2 0 0 1 2-2h1" />
+                    <path d="M20 7V6a2 2 0 0 0-2-2h-1" />
+                    <path d="M4 17v1a2 2 0 0 0 2 2h1" />
+                    <path d="M20 17v1a2 2 0 0 1-2 2h-1" />
+                    <path d="M7 12h10" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="ft">Quick barcode scan</div>
+                  <div class="fs">Uses the fastest scanner available on your device.</div>
+                </div>
+              </div>
+              <div class="fitem" role="listitem">
+                <div class="ficon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" class="icon">
+                    <path d="M9 18h6" />
+                    <path d="M10 22h4" />
+                    <path d="M12 2a6 6 0 0 0-3 11.2V15a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1.8A6 6 0 0 0 12 2Z" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="ft">Flashlight toggle</div>
+                  <div class="fs">Turn on the torch in low light (when supported).</div>
+                </div>
+              </div>
+              <div class="fitem" role="listitem">
+                <div class="ficon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" class="icon">
+                    <path d="M12 2l3 7h7l-5.6 4.1 2.1 7L12 16.9 5.5 20.1l2.1-7L2 9h7z" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="ft">Nutrition score (0–10)</div>
+                  <div class="fs">Simple, explainable score from available nutrition data.</div>
+                </div>
+              </div>
+              <div class="fitem" role="listitem">
+                <div class="ficon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" class="icon">
+                    <path d="M4 6h16" />
+                    <path d="M6 6l1 15a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-15" />
+                    <path d="M10 11v7" />
+                    <path d="M14 11v7" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="ft">Local history</div>
+                  <div class="fs">Your recent scans stay on your device (no account).</div>
+                </div>
+              </div>
+              <div class="fitem" role="listitem">
+                <div class="ficon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" class="icon">
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Z" />
+                    <path d="M9.5 12l1.8 1.8L15 10" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="ft">Cleaner details</div>
+                  <div class="fs">Only shows fields that are actually available for the product.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card pad">
+            <div class="h1">Coverage in India</div>
+            <div class="sub">
+              NutriScan uses Open Food Facts (community-powered). Some Indian products may be missing
+              or have incomplete details.
+            </div>
+            <div style="height: 10px"></div>
+            <div class="note">
+              If a product isn’t found, try scanning again (steady + good light) or use Manual entry.
+              You can also add or improve products on Open Food Facts to help everyone.
             </div>
           </div>
 
@@ -331,7 +419,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js" defer></script>
-    <script src="app.js?v=20260403-01" defer></script>
+    <script src="app.js?v=20260403-02" defer></script>
     </body>
 </html>
 
