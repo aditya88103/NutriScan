@@ -767,10 +767,13 @@
         const { renderProductHeader, renderScore, renderDetails, renderNutritionTable, renderIngredients } = M.render;
         const { addToHistory } = M.history;
 
-        function fetchWithTimeout(url, { timeoutMs = 4500 } = {}) {
+        function fetchWithTimeout(url, { timeoutMs = 5500, cache = "force-cache" } = {}) {
+          if (typeof AbortController === "undefined") {
+            return fetch(url, { cache });
+          }
           const controller = new AbortController();
           const t = setTimeout(() => controller.abort(), timeoutMs);
-          return fetch(url, { cache: "force-cache", signal: controller.signal }).finally(() => clearTimeout(t));
+          return fetch(url, { cache, signal: controller.signal }).finally(() => clearTimeout(t));
         }
 
         function parseProduct(data) {
@@ -806,8 +809,8 @@
           return `fields=${encodeURIComponent(fields.join(","))}`;
         }
 
-        async function fetchProductFrom(url) {
-          const res = await fetchWithTimeout(url);
+        async function fetchProductFrom(url, opts = {}) {
+          const res = await fetchWithTimeout(url, opts);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
           const product = parseProduct(data);
@@ -823,9 +826,11 @@
           const code = normalizeBarcode(barcode);
           if (!code) throw new Error("INVALID");
           const fields = buildFieldsParam();
-          const endpoints = [
+          const v2Endpoints = [
             `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?${fields}`,
             `https://in.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?${fields}`,
+          ];
+          const v0Endpoints = [
             `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`,
             `https://in.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`,
           ];
@@ -847,17 +852,34 @@
                   });
                 });
 
+          const collectErrors = (err) => (Array.isArray(err) ? err : err?.errors || []);
+
           try {
-            return await any(endpoints.map((u) => fetchProductFrom(u)));
+            return await any(v2Endpoints.map((u) => fetchProductFrom(u, { timeoutMs: 5500, cache: "force-cache" })));
           } catch (err) {
-            const errors = Array.isArray(err) ? err : err?.errors || [];
+            const errors = collectErrors(err);
             const notFound = errors.some((e) => e?.code === "NOT_FOUND");
-            if (notFound) {
-              const e = new Error("NOT_FOUND");
-              e.code = "NOT_FOUND";
-              throw e;
+            if (!notFound) {
+              // Try v0 fallback even on network errors
+              try {
+                return await any(
+                  v0Endpoints.map((u) => fetchProductFrom(u, { timeoutMs: 7500, cache: "no-store" }))
+                );
+              } catch (err2) {
+                const errors2 = collectErrors(err2);
+                const notFound2 = errors2.some((e) => e?.code === "NOT_FOUND");
+                if (notFound2) {
+                  const e = new Error("NOT_FOUND");
+                  e.code = "NOT_FOUND";
+                  throw e;
+                }
+                throw err2;
+              }
             }
-            throw err;
+
+            const e = new Error("NOT_FOUND");
+            e.code = "NOT_FOUND";
+            throw e;
           }
         }
 
