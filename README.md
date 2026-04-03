@@ -1,40 +1,60 @@
 # NutriScan
 
-NutriScan is a mobile-first barcode scanner that pulls product data from Open Food Facts and shows a simple nutrition score (0–10).
+NutriScan is a mobile-first barcode scanner that pulls product data from Open Food Facts and shows a simple nutrition score (0-10).
+
+Live demo: https://aditya88103.github.io/ai-Scanner/
 
 ## Features
 - Fast live scanning (BarcodeDetector when available, with Quagga fallback)
-- Flashlight toggle (when supported by device/browser)
-- Manual barcode entry
-- Nutrition score with quick breakdown
-- Product details + nutrition table + ingredients/allergen highlights (only shows available fields)
-- Local scan history (stored on-device, no account)
+- Flashlight toggle (when supported by your device/browser)
+- Manual barcode entry (EAN/UPC)
+- Nutrition score (0-10) with a quick, explainable breakdown
+- Product details + nutrition table + ingredients/allergen highlights (only shows fields that exist)
+- Local scan history (saved in your browser; no account)
+
+## How it works
+1. Scan a barcode (or enter it manually).
+2. NutriScan fetches product data from Open Food Facts.
+3. It computes a simple score (0-10) using available nutrition facts + Nutri-Score grade (when present).
+
+This is not medical advice. Always check the label and your dietary needs.
 
 ## Data Source
 NutriScan uses Open Food Facts (community-powered). Coverage varies, so some Indian products may be missing or incomplete.
 
-## Getting Started
-Camera access requires HTTPS or localhost. Run a local server:
+If a product is missing, you can help everyone by adding/improving it on Open Food Facts.
 
-```bash
-python -m http.server 5173
-```
-
-Then open:
-
-```text
-http://localhost:5173
-```
+## Privacy
+- No login / no account.
+- Camera runs only while you are on the Scan screen.
+- History is stored locally (browser `localStorage`) on your device.
 
 ## Usage
-1. Tap **Scan** to start the camera.
-2. Hold steady over the barcode.
-3. Use the flashlight button in low light (if supported).
-4. History is saved locally on the device.
+1. Open the live demo link.
+2. Tap **Scan** to start the camera and allow permission.
+3. Hold steady over the barcode (good light helps a lot).
+4. Use the flashlight button in low light (if supported).
+5. Recent scans appear in **History**.
+
+## Supported barcodes
+- EAN-13, EAN-8, UPC-A, UPC-E (support varies by device/browser)
+
+## Troubleshooting
+- Camera works only on HTTPS (GitHub Pages is HTTPS). If scan doesn’t start:
+  - Allow camera permission in your browser settings.
+  - Try Chrome on Android (best support in most phones).
+- Flashlight works only if your phone + browser supports torch control.
+- “Not found” usually means the product is not in Open Food Facts yet, or details are incomplete.
+
+## Tech stack
+- Vanilla HTML/CSS/JS
+- BarcodeDetector API (fast path on supported browsers)
+- QuaggaJS (fallback scanner)
+- Open Food Facts API (India + World endpoints)
 
 ## Notes
 - Flashlight depends on device + browser support.
-- This project is client-side only; no user accounts.
+- This project is client-side only (runs in the browser); no user accounts.
 - Data comes from Open Food Facts and may be incomplete.
 
 ## Roadmap
