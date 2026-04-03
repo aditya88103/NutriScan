@@ -454,11 +454,16 @@
         gap: 12px;
         pointer-events: auto;
       }
+      
+      .icon-btn--torch {
+        position: absolute;
+        right: 14px;
+        bottom: calc(var(--nav-h) + 110px);
+        pointer-events: auto;
+      }
 
-      .row-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+      .icon-btn--torch.is-active {
+        box-shadow: 0 8px 24px rgba(255, 183, 3, 0.22);
       }
 
       .scan-reticle {

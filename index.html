@@ -30,19 +30,11 @@
                 <strong>MintScan</strong>
                 <span style="opacity: 0.85">Health</span>
               </div>
-              <div class="row-actions">
-                <button class="icon-btn" id="btn-torch" aria-label="Flashlight off" aria-pressed="false">
-                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M9 2h6v4l-2 2v4l2 2v8H9v-8l2-2V8L9 6z" />
-                    <path d="M6 6h12" />
-                  </svg>
-                </button>
-                <button class="icon-btn" id="btn-manual-open" aria-label="Manual entry">
-                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M4 7h16M4 12h10M4 17h16" />
-                  </svg>
-                </button>
-              </div>
+              <button class="icon-btn" id="btn-manual-open" aria-label="Manual entry">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 7h16M4 12h10M4 17h16" />
+                </svg>
+              </button>
             </div>
 
             <div class="scan-reticle" aria-hidden="true">
@@ -56,6 +48,15 @@
               <span class="pill" id="pill-status"><strong>Ready</strong> Tap Scan to start</span>
               <span class="pill" id="pill-secure" style="display: none">Camera needs HTTPS/localhost</span>
             </div>
+
+            <button class="icon-btn icon-btn--torch" id="btn-torch" aria-label="Flashlight off" aria-pressed="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 2h6l-2 6h-2z" />
+                <path d="M10 8h4v5l2 2v7H8v-7l2-2z" />
+                <path d="M4 3l2 2" />
+                <path d="M20 3l-2 2" />
+              </svg>
+            </button>
           </div>
         </section>
 
