@@ -58,7 +58,6 @@
 
             historyStrip: $("#history-strip"),
             btnClearHistory: $("#btn-clear-history"),
-            btnTestApi: $("#btn-test-api"),
           },
            STORAGE_KEY: "mintscan_history_v1",
            state: {
@@ -1603,23 +1602,6 @@
 
         const versionEl = document.querySelector("#app-version");
         if (versionEl) versionEl.textContent = String(M.VERSION ?? "");
-
-        if (els.btnTestApi) {
-          els.btnTestApi.addEventListener("click", async () => {
-            els.btnTestApi.disabled = true;
-            toast("Testing Open Food Facts...");
-            try {
-              const product = await M.api.fetchProduct("3017620422003"); // Nutella (usually present)
-              const name = product?.product_name_en ?? product?.product_name ?? "Product found";
-              toast(`API OK: ${name}`);
-            } catch (e) {
-              const code = e?.code ?? e?.name ?? "ERROR";
-              toast(`API test failed (${code}).`);
-            } finally {
-              els.btnTestApi.disabled = false;
-            }
-          });
-        }
 
         const ok = M.scanner.ensureSecureHint();
         if (!ok && location.protocol !== "https:" && location.hostname !== "localhost") {
