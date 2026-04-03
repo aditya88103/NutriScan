@@ -28,6 +28,7 @@
             manualInput: $("#manual-input"),
             manualLookup: $("#manual-lookup"),
             manualPaste: $("#manual-paste"),
+            btnTorch: $("#btn-torch"),
 
             btnBackToScan: $("#btn-back-to-scan"),
 
@@ -63,17 +64,18 @@
              lastDetectedAt: 0,
              history: [],
              currentBarcode: null,
-             currentProduct: null,
-             quaggaReady: false,
-             scanToken: 0,
-             scannerEngine: null, // "barcode-detector" | "quagga"
-             cameraStream: null,
-             cameraVideo: null,
-             barcodeDetector: null,
-             detectorToken: 0,
-             detectorLastAt: 0,
-             cameraReleaseTimer: null,
-           },
+            currentProduct: null,
+            quaggaReady: false,
+            scanToken: 0,
+            scannerEngine: null, // "barcode-detector" | "quagga"
+            cameraStream: null,
+            cameraVideo: null,
+            barcodeDetector: null,
+            detectorToken: 0,
+            detectorLastAt: 0,
+            cameraReleaseTimer: null,
+            torchOn: false,
+          },
           util: {},
           health: {},
           render: {},
@@ -841,7 +843,7 @@
 
 (function scannerModule(M) {
         const { els, state } = M;
-        const { escapeHtml, normalizeBarcode, toast } = M.util;
+        const { escapeHtml, normalizeBarcode, toast, sleep } = M.util;
 
         const CAMERA_WARM_MS = 120000;
         const DETECT_THROTTLE_MS = 120;
@@ -895,6 +897,69 @@
           if (!track) return null;
           if (track.readyState && track.readyState !== "live") return null;
           return track;
+        }
+
+        function getActiveVideoTrack() {
+          const fromState = getLiveVideoTrack(state.cameraStream);
+          if (fromState) return fromState;
+          if (window.Quagga?.CameraAccess?.getActiveTrack) {
+            try {
+              return window.Quagga.CameraAccess.getActiveTrack();
+            } catch {
+              return null;
+            }
+          }
+          return null;
+        }
+
+        function setTorchButton(on) {
+          if (!els.btnTorch) return;
+          els.btnTorch.classList.toggle("is-active", Boolean(on));
+          els.btnTorch.setAttribute("aria-pressed", on ? "true" : "false");
+          els.btnTorch.setAttribute("aria-label", on ? "Flashlight on" : "Flashlight off");
+        }
+
+        async function applyTorchState(on) {
+          const track = getActiveVideoTrack();
+          if (!track?.applyConstraints) return false;
+
+          let hasTorch = false;
+          try {
+            const caps = track.getCapabilities ? track.getCapabilities() : null;
+            hasTorch = Boolean(caps?.torch);
+          } catch {
+            hasTorch = false;
+          }
+          if (!hasTorch) return false;
+
+          try {
+            await track.applyConstraints({ advanced: [{ torch: Boolean(on) }] });
+            return true;
+          } catch {
+            return false;
+          }
+        }
+
+        async function toggleTorch() {
+          const target = !state.torchOn;
+          state.torchOn = target;
+          setTorchButton(target);
+
+          if (!state.scanning) {
+            startScanner();
+            await sleep(250);
+          }
+
+          const ok = await applyTorchState(target);
+          if (!ok && target) {
+            await sleep(250);
+            const ok2 = await applyTorchState(target);
+            if (!ok2) {
+              state.torchOn = false;
+              setTorchButton(false);
+              toast("Flashlight not supported on this device.");
+            }
+          }
         }
 
         async function applyBestEffortAutofocus(track) {
@@ -981,6 +1046,7 @@
 
           const track = getLiveVideoTrack(stream);
           await applyBestEffortAutofocus(track);
+          if (state.torchOn) await applyTorchState(true);
 
           return { stream, video };
         }
@@ -1126,6 +1192,9 @@
             window.Quagga.start();
             state.quaggaReady = true;
             setScanPill("Scanning", "Hold steady");
+            if (state.torchOn) {
+              applyTorchState(true);
+            }
 
             window.Quagga.onDetected(onQuaggaDetected);
           });
@@ -1214,6 +1283,11 @@
 
           stopBarcodeDetector();
           stopQuagga();
+          if (state.torchOn) {
+            state.torchOn = false;
+            setTorchButton(false);
+            applyTorchState(false);
+          }
 
           if (shouldReleaseCamera) releaseCamera();
           else scheduleCameraRelease();
@@ -1225,7 +1299,7 @@
           if (document.hidden) stopScanner({ releaseCamera: true });
         });
 
-        M.scanner = { ensureSecureHint, setScanPill, startScanner, stopScanner, releaseCamera };
+        M.scanner = { ensureSecureHint, setScanPill, startScanner, stopScanner, releaseCamera, toggleTorch };
       })(window.MintScan);
 
 (function bootModule(M) {
@@ -1253,6 +1327,9 @@
           if (state.scanning) M.scanner.stopScanner();
           openModal();
         });
+        if (els.btnTorch) {
+          els.btnTorch.addEventListener("click", () => M.scanner.toggleTorch());
+        }
         els.btnManualClose.addEventListener("click", closeModal);
         els.modalBackdrop.addEventListener("click", closeModal);
 
