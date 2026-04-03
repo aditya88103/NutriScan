@@ -1,7 +1,9 @@
 ﻿(function initMintScan() {
         const $ = (sel) => document.querySelector(sel);
+        const VERSION = "20260403-01";
 
         window.MintScan = {
+          VERSION,
           $,
           screens: {
             scan: $("#screen-scan"),
@@ -56,6 +58,7 @@
 
             historyStrip: $("#history-strip"),
             btnClearHistory: $("#btn-clear-history"),
+            btnTestApi: $("#btn-test-api"),
           },
            STORAGE_KEY: "mintscan_history_v1",
            state: {
@@ -822,8 +825,30 @@
 
         async function fetchProductFrom(url, opts = {}) {
           const res = await safeFetch(url, opts);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
+
+          if (res.status === 404) {
+            const err = new Error("NOT_FOUND");
+            err.code = "NOT_FOUND";
+            throw err;
+          }
+
+          if (!res.ok) {
+            const err = new Error(`HTTP ${res.status}`);
+            err.code = res.status === 429 ? "RATE_LIMIT" : "HTTP_ERROR";
+            err.status = res.status;
+            throw err;
+          }
+
+          let data;
+          try {
+            data = await res.json();
+          } catch (e) {
+            const err = new Error("BAD_JSON");
+            err.code = "BAD_JSON";
+            err.cause = e;
+            throw err;
+          }
+
           const product = parseProduct(data);
           if (!product) {
             const err = new Error("NOT_FOUND");
@@ -837,79 +862,35 @@
           const code = normalizeBarcode(barcode);
           if (!code) throw new Error("INVALID");
           const fields = buildFieldsParam();
-          const v2Endpoints = [
-            `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?${fields}`,
-            `https://in.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?${fields}`,
-          ];
-          const v0Endpoints = [
-            `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`,
-            `https://in.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`,
-          ];
-          const searchEndpoints = [
-            `https://in.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(
-              code
-            )}&search_simple=1&action=process&json=1&page_size=1`,
-            `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(
-              code
-            )}&search_simple=1&action=process&json=1&page_size=1`,
-          ];
-
-          const any = Promise.any
-            ? Promise.any
-            : (promises) =>
-                new Promise((resolve, reject) => {
-                  let rejected = 0;
-                  const errors = [];
-                  promises.forEach((p, i) => {
-                    Promise.resolve(p)
-                      .then(resolve)
-                      .catch((err) => {
-                        errors[i] = err;
-                        rejected += 1;
-                        if (rejected === promises.length) reject(errors);
-                      });
-                  });
-                });
-
-          const collectErrors = (err) => (Array.isArray(err) ? err : err?.errors || []);
+          const v2Url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?${fields}`;
+          const v0Url = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`;
+          const searchUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(
+            code
+          )}&search_simple=1&action=process&json=1&page_size=1`;
 
           try {
-            return await any(
-              v2Endpoints.map((u) => fetchProductFrom(u, { timeoutMs: 5500, cache: "no-store" }))
-            );
-          } catch (err) {
-            const errors = collectErrors(err);
-            const notFound = errors.some((e) => e?.code === "NOT_FOUND");
-            if (!notFound) {
-              // Try v0 fallback even on network errors
-              try {
-                return await any(
-                  v0Endpoints.map((u) => fetchProductFrom(u, { timeoutMs: 7500, cache: "no-store" }))
-                );
-              } catch (err2) {
-                const errors2 = collectErrors(err2);
-                const notFound2 = errors2.some((e) => e?.code === "NOT_FOUND");
-                if (!notFound2) {
-                  // Last resort: search endpoint
-                  try {
-                    const res = await any(
-                      searchEndpoints.map((u) => safeFetch(u, { timeoutMs: 8000, cache: "no-store" }))
-                    );
-                    const data = await res.json();
-                    const product = data?.products?.[0] ?? null;
-                    if (product) return product;
-                  } catch {
-                    // ignore
-                  }
-                  throw err2;
-                }
-              }
-            }
-
-            const e = new Error("NOT_FOUND");
-            e.code = "NOT_FOUND";
-            throw e;
+            return await fetchProductFrom(v2Url, { timeoutMs: 6500, cache: "no-store" });
+          } catch (e) {
+            if (e?.code === "NOT_FOUND") throw e;
           }
+
+          try {
+            return await fetchProductFrom(v0Url, { timeoutMs: 8500, cache: "no-store" });
+          } catch (e) {
+            if (e?.code === "NOT_FOUND") throw e;
+          }
+
+          // Last resort: search endpoint (sometimes returns products even when product endpoint fails)
+          const res = await safeFetch(searchUrl, { timeoutMs: 9000, cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const product = data?.products?.[0] ?? null;
+          if (!product) {
+            const err = new Error("NOT_FOUND");
+            err.code = "NOT_FOUND";
+            throw err;
+          }
+          return product;
         }
 
         async function analyzeBarcode(barcode, { source = "scan" } = {}) {
@@ -963,11 +944,26 @@
               if (navigator.vibrate) navigator.vibrate([12, 40, 12]);
             }
           } catch (e) {
-            const msg =
-              e?.code === "NOT_FOUND"
-                ? "Not found in Open Food Facts. Try scanning again or enter the code manually."
-                : "Network error while fetching product.";
-            els.errTitle.textContent = "We couldn't find that product";
+            let msg = "Network error while fetching product.";
+            let title = "We couldn't find that product";
+
+            if (e?.code === "NOT_FOUND") {
+              msg = "Not found in Open Food Facts. Try scanning again or enter the code manually.";
+            } else if (e?.code === "RATE_LIMIT") {
+              title = "Too many requests";
+              msg = "Open Food Facts is rate-limiting. Please wait 20 seconds and try again.";
+            } else if (e?.name === "AbortError") {
+              title = "Request timed out";
+              msg = "Your internet seems slow. Please try again.";
+            } else if (e?.code === "BAD_JSON") {
+              title = "Unexpected response";
+              msg = "Open Food Facts returned an unexpected response. Please try again.";
+            } else if (typeof e?.status === "number") {
+              title = "Server error";
+              msg = `Open Food Facts error (HTTP ${e.status}). Please try again.`;
+            }
+
+            els.errTitle.textContent = title;
             els.errMsg.textContent = msg;
             els.errInput.value = code;
             showScreen("error");
@@ -1074,8 +1070,8 @@
         function buildVideoConstraints({ torch = false } = {}) {
           return {
             facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
             advanced: getAdvancedCameraConstraints({ torch }),
           };
         }
@@ -1382,7 +1378,7 @@
             frequency: 15,
             numOfWorkers: Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1)),
             decoder: {
-              readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader", "code_128_reader"],
+              readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"],
             },
           };
 
@@ -1604,6 +1600,26 @@
         // Boot: load history + initial hints
         state.history = M.history.loadHistory();
         M.history.renderHistory();
+
+        const versionEl = document.querySelector("#app-version");
+        if (versionEl) versionEl.textContent = String(M.VERSION ?? "");
+
+        if (els.btnTestApi) {
+          els.btnTestApi.addEventListener("click", async () => {
+            els.btnTestApi.disabled = true;
+            toast("Testing Open Food Facts...");
+            try {
+              const product = await M.api.fetchProduct("3017620422003"); // Nutella (usually present)
+              const name = product?.product_name_en ?? product?.product_name ?? "Product found";
+              toast(`API OK: ${name}`);
+            } catch (e) {
+              const code = e?.code ?? e?.name ?? "ERROR";
+              toast(`API test failed (${code}).`);
+            } finally {
+              els.btnTestApi.disabled = false;
+            }
+          });
+        }
 
         const ok = M.scanner.ensureSecureHint();
         if (!ok && location.protocol !== "https:" && location.hostname !== "localhost") {

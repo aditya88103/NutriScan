@@ -12,7 +12,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260403-01" />
   </head>
 
   <body>
@@ -247,7 +247,15 @@
               <span class="badge badge--mint"><b>Privacy</b> No account</span>
               <span class="badge badge--mint"><b>Storage</b> History stays on device</span>
               <span class="badge"><b>API</b> Open Food Facts</span>
+              <span class="badge"><b>Version</b> <span id="app-version">—</span></span>
             </div>
+          </div>
+
+          <div class="card pad">
+            <div class="h1">Diagnostics</div>
+            <div class="sub">If results aren’t loading, run a quick API test.</div>
+            <div style="height: 12px"></div>
+            <button class="btn btn--ghost" id="btn-test-api">Test Open Food Facts</button>
           </div>
 
         </section>
@@ -328,7 +336,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=20260403-01" defer></script>
     </body>
 </html>
 
