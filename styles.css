@@ -908,15 +908,14 @@
 
       /* History */
       .strip {
-        display: flex;
+        display: grid;
         gap: 12px;
-        overflow: auto;
+        overflow: visible;
         padding: 2px 2px 10px;
-        scroll-snap-type: x mandatory;
       }
 
       .strip::-webkit-scrollbar {
-        height: 8px;
+        width: 8px;
       }
 
       .strip::-webkit-scrollbar-thumb {
@@ -925,8 +924,7 @@
       }
 
       .hcard {
-        min-width: 220px;
-        scroll-snap-align: start;
+        width: 100%;
         padding: 12px;
         border-radius: 18px;
         border: 1px solid rgba(255, 255, 255, 0.08);

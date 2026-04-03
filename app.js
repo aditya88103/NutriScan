@@ -174,6 +174,17 @@
           return { label: "Avoid", color: "var(--danger)" };
         }
 
+        function scoreTo10(score) {
+          const s = Number(score);
+          if (!Number.isFinite(s)) return 0;
+          return Math.round(s) / 10;
+        }
+
+        function formatScore10(score) {
+          const v = scoreTo10(score);
+          return Number.isInteger(v) ? String(v) : v.toFixed(1);
+        }
+
         function computeHealthScore(product) {
           const nutriments = product?.nutriments ?? {};
 
@@ -256,7 +267,7 @@
           };
         }
 
-        M.health = { classifyScore, computeHealthScore };
+        M.health = { classifyScore, computeHealthScore, scoreTo10, formatScore10 };
       })(window.MintScan);
 
 (function renderHelpers(M) {
@@ -303,7 +314,7 @@
             D: "rgba(255,107,53,0.35)",
             E: "rgba(255,59,107,0.38)",
           };
-          if (!map[g]) return `<span class="badge"><b>Nutri-Score</b> â€”</span>`;
+          if (!map[g]) return "";
           return `<span class="badge" style="background:${map[g]};border-color:${border[g]};color:rgba(255,255,255,0.92)"><b>Nutri-Score</b> ${escapeHtml(
             g
           )}</span>`;
@@ -356,7 +367,7 @@
             <div class="card pad" style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); box-shadow:none">
               <div class="sub">${escapeHtml(label)}</div>
               <div style="height:6px"></div>
-              <div style="font-weight:800; letter-spacing:-0.02em; line-height:1.15">${escapeHtml(value || "â€”")}</div>
+              <div style="font-weight:800; letter-spacing:-0.02em; line-height:1.15">${escapeHtml(value || "")}</div>
             </div>
           `;
         }
@@ -478,7 +489,12 @@
             { label: "Saturated fat", value: satFat, unit: " g", dotKey: "satfat" },
             { label: "Fiber", value: fiber, unit: " g", dotKey: "fiber" },
             { label: "Sodium", value: sodium, unit: " g", dotKey: "sodium" },
-          ];
+          ].filter((r) => r.value !== null && r.value !== undefined);
+
+          if (!rows.length) {
+            els.nutriTable.innerHTML = `<div class="sub">Nutrition details not available for this product.</div>`;
+            return;
+          }
 
           els.nutriTable.innerHTML = rows
             .map((r) => {
@@ -531,17 +547,29 @@
           const cats = product?.categories ?? "";
           const countries = product?.countries ?? "";
 
-          const badges = [H.nutriBadge(nutri), H.novaBadge(nova), eco ? H.ecoBadge(eco) : "", H.labelBadges(product)].join(
-            ""
+          const badgeParts = [H.nutriBadge(nutri), H.novaBadge(nova), eco ? H.ecoBadge(eco) : "", H.labelBadges(product)].filter(
+            Boolean
           );
-          els.detailsBadges.innerHTML = badges || `<span class="badge"><b>Details</b> Limited</span>`;
+          const badges = badgeParts.join("");
+          els.detailsBadges.innerHTML = badges;
+          els.detailsBadges.style.display = badges ? "flex" : "none";
 
-          els.detailsGrid.innerHTML = [
-            H.kvCard("Category", cats ? cats.split(",").slice(0, 2).join(", ").trim() : "â€”"),
-            H.kvCard("Country of origin", countries ? countries.split(",").slice(0, 2).join(", ").trim() : "â€”"),
-            H.kvCard("Packaging", pkg ? String(pkg).split(",").slice(0, 2).join(", ").trim() : "â€”"),
-            H.kvCard("Barcode", state.currentBarcode ?? "â€”"),
-          ].join("");
+          const details = [];
+          const catText = cats ? cats.split(",").slice(0, 2).join(", ").trim() : "";
+          const countryText = countries ? countries.split(",").slice(0, 2).join(", ").trim() : "";
+          const pkgText = pkg ? String(pkg).split(",").slice(0, 2).join(", ").trim() : "";
+          const barcodeText = state.currentBarcode ? String(state.currentBarcode) : "";
+
+          if (catText) details.push(H.kvCard("Category", catText));
+          if (countryText) details.push(H.kvCard("Country of origin", countryText));
+          if (pkgText) details.push(H.kvCard("Packaging", pkgText));
+          if (barcodeText) details.push(H.kvCard("Barcode", barcodeText));
+
+          els.detailsGrid.innerHTML = details.join("");
+          els.detailsGrid.style.display = details.length ? "grid" : "none";
+
+          const detailsCard = M.$("#details-card");
+          if (detailsCard) detailsCard.style.display = badges || details.length ? "block" : "none";
         }
 
         function renderProductHeader(product, health) {
@@ -571,7 +599,7 @@
             `<span class="badge ${addN ? "badge--warn" : ""}"><b>Additives</b> ${escapeHtml(String(addN))}</span>`
           );
 
-          els.pMeta.innerHTML = metaParts.join("");
+          els.pMeta.innerHTML = metaParts.filter(Boolean).join("");
         }
 
         function renderScore(health) {
@@ -588,23 +616,25 @@
           // Count-up animation
           const duration = 750;
           const t0 = performance.now();
+          const { scoreTo10, formatScore10 } = M.health;
           const from = Number(els.scoreNum.textContent) || 0;
-          const to = target;
+          const to = scoreTo10(target);
 
           function tick(now) {
             const p = clamp((now - t0) / duration, 0, 1);
             const eased = 1 - Math.pow(1 - p, 3);
-            const v = Math.round(from + (to - from) * eased);
-            els.scoreNum.textContent = String(v);
+            const v = from + (to - from) * eased;
+            const rounded = Math.round(v * 10) / 10;
+            els.scoreNum.textContent = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
             if (p < 1) requestAnimationFrame(tick);
           }
           requestAnimationFrame(tick);
 
-          els.scoreLab.textContent = health.grade.label;
+          els.scoreLab.textContent = "out of 10";
 
           const lines = [];
           lines.push(
-            `<div class="line"><span>Nutri-Score base</span><b>${escapeHtml(String(Math.round(health.base)))}</b></div>`
+            `<div class="line"><span>Nutri-Score base (out of 10)</span><b>${escapeHtml(formatScore10(health.base))}</b></div>`
           );
 
           if (health.metrics.sugar !== null) {
@@ -627,9 +657,10 @@
             .filter((x) => Math.round(x.value) !== 0)
             .slice(0, 4)
             .map((x) => {
-              const v = Math.round(x.value);
-              const sign = v > 0 ? "+" : "";
-              return `<div class="line"><span>${escapeHtml(x.label)}</span><b>${escapeHtml(sign + v)}</b></div>`;
+              const v10 = scoreTo10(x.value);
+              const sign = v10 > 0 ? "+" : "";
+              const shown = Number.isInteger(v10) ? String(v10) : v10.toFixed(1);
+              return `<div class="line"><span>${escapeHtml(x.label)} (out of 10)</span><b>${escapeHtml(sign + shown)}</b></div>`;
             });
 
           if (adj.length) lines.push(`<div style="height:6px"></div>`, ...adj);
@@ -642,8 +673,8 @@
 
 (function historyModule(M) {
         const { els, state, STORAGE_KEY } = M;
-        const { escapeHtml, toast } = M.util;
-        const { classifyScore } = M.health;
+          const { escapeHtml, toast } = M.util;
+          const { classifyScore, formatScore10 } = M.health;
 
         function loadHistory() {
           try {
@@ -680,7 +711,7 @@
           if (!els.historyStrip) return;
 
           if (!state.history.length) {
-            els.historyStrip.innerHTML = `<div class="hcard" style="min-width: 100%; cursor: default"><div class="t1">No scans yet</div><div class="t2">Scan a product to build your history.</div></div>`;
+            els.historyStrip.innerHTML = `<div class="hcard" style="width: 100%; cursor: default"><div class="t1">No scans yet</div><div class="t2">Scan a product to build your history.</div></div>`;
             return;
           }
 
@@ -689,6 +720,7 @@
               const name = h.name || "Unknown product";
               const brand = h.brand || "Brand not listed";
               const score = Number(h.score);
+              const score10 = formatScore10(score);
               const label = classifyScore(score).label;
               const img = h.image || "";
               const color = scoreColor(score);
@@ -704,8 +736,8 @@
                     </div>
                   </div>
                   <div class="score">
-                    <div class="n" style="color:${escapeHtml(color)}">${escapeHtml(String(score))}</div>
-                    <div class="l">${escapeHtml(label)}</div>
+                    <div class="n" style="color:${escapeHtml(color)}">${escapeHtml(score10)}</div>
+                    <div class="l">${escapeHtml(label)} /10</div>
                   </div>
                 </div>
               `;
@@ -874,6 +906,10 @@
             if (caps?.focusMode?.includes?.("continuous")) advanced.push({ focusMode: "continuous" });
             if (caps?.exposureMode?.includes?.("continuous")) advanced.push({ exposureMode: "continuous" });
             if (caps?.whiteBalanceMode?.includes?.("continuous")) advanced.push({ whiteBalanceMode: "continuous" });
+            if (caps?.zoom?.max) {
+              const zoomTarget = Math.min(2, caps.zoom.max);
+              if (!caps.zoom.min || zoomTarget >= caps.zoom.min) advanced.push({ zoom: zoomTarget });
+            }
           } catch {
             // ignore capability errors
           }
@@ -1049,12 +1085,17 @@
                 facingMode: { ideal: "environment" },
                 width: { ideal: 1920 },
                 height: { ideal: 1080 },
+                advanced: [
+                  { focusMode: "continuous" },
+                  { exposureMode: "continuous" },
+                  { whiteBalanceMode: "continuous" },
+                ],
               },
               area: { top: "35%", right: "10%", left: "10%", bottom: "35%" },
             },
             locate: true,
-            locator: { patchSize: "medium", halfSample: true },
-            frequency: 10,
+            locator: { patchSize: "large", halfSample: false },
+            frequency: 12,
             numOfWorkers: Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 4) - 1)),
             decoder: {
               readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader", "code_128_reader"],

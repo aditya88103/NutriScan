@@ -30,11 +30,19 @@
                 <strong>MintScan</strong>
                 <span style="opacity: 0.85">Health</span>
               </div>
-              <button class="icon-btn" id="btn-manual-open" aria-label="Manual entry">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 7h16M4 12h10M4 17h16" />
-                </svg>
-              </button>
+              <div class="row-actions">
+                <button class="icon-btn" id="btn-torch" aria-label="Flashlight off" aria-pressed="false">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 2h6v4l-2 2v4l2 2v8H9v-8l2-2V8L9 6z" />
+                    <path d="M6 6h12" />
+                  </svg>
+                </button>
+                <button class="icon-btn" id="btn-manual-open" aria-label="Manual entry">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 7h16M4 12h10M4 17h16" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div class="scan-reticle" aria-hidden="true">
@@ -233,7 +241,7 @@
             <div class="h1">MintScan Health</div>
             <div class="sub">
               Scan a barcode to pull product data from Open Food Facts and estimate a simple health
-              score (0-100). This is not medical advice. Always check the label and your dietary
+              score (0-10). This is not medical advice. Always check the label and your dietary
               needs.
             </div>
             <div style="height: 12px"></div>
@@ -244,14 +252,6 @@
             </div>
           </div>
 
-          <div class="card pad">
-            <div class="h1">Tips</div>
-            <div class="sub">
-              For camera scanning, the page must be opened on <b>HTTPS</b> or <b>localhost</b>. If
-              you're opening this file directly, run a simple static server and open it via
-              <b>http://localhost</b>.
-            </div>
-          </div>
         </section>
       </div>
 
