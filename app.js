@@ -1,6 +1,6 @@
 ﻿(function initMintScan() {
         const $ = (sel) => document.querySelector(sel);
-        const VERSION = "20260403-03";
+        const VERSION = "20260403-04";
 
         window.NutriScan = {
           VERSION,
@@ -62,6 +62,7 @@
            STORAGE_KEY: "nutriscan_history_v1",
            LEGACY_STORAGE_KEYS: ["mintscan_history_v1"],
            state: {
+            currentScreen: "scan",
              scanning: false,
              lastCode: null,
              lastDetectedAt: 0,
@@ -147,6 +148,8 @@
           if (screenName !== "scan" && typeof M.scanner.stopScanner === "function") {
             M.scanner.stopScanner({ releaseCamera: true });
           }
+
+          state.currentScreen = screenName;
         }
 
         function openModal() {
@@ -167,6 +170,81 @@
         }
 
         M.util = { clamp, sleep, escapeHtml, num, fmt, toast, showScreen, setActiveNav, openModal, closeModal, normalizeBarcode };
+      })(window.NutriScan);
+
+(function navModule(M) {
+        const { state } = M;
+        const { showScreen } = M.util;
+
+        const VALID_SCREENS = new Set(["scan", "history", "about", "loading", "result", "error"]);
+        const EPHEMERAL_SCREENS = new Set(["loading", "result", "error"]);
+
+        const normalize = (name) => (VALID_SCREENS.has(name) ? name : "scan");
+
+        function go(screenName, { replace = false } = {}) {
+          const next = normalize(screenName);
+          if (state.currentScreen === next) {
+            showScreen(next);
+            return;
+          }
+
+          showScreen(next);
+
+          try {
+            const method = replace ? "replaceState" : "pushState";
+            history[method]({ screen: next }, "", location.href);
+          } catch {
+            // ignore
+          }
+        }
+
+        function back(fallback = "scan") {
+          try {
+            if (history.length > 1) {
+              history.back();
+              return;
+            }
+          } catch {
+            // ignore
+          }
+
+          go(fallback, { replace: true });
+        }
+
+        function init() {
+          let initial = normalize(state.currentScreen || "scan");
+          let fromHistory = null;
+          try {
+            fromHistory = history.state?.screen ?? null;
+          } catch {
+            fromHistory = null;
+          }
+          if (fromHistory) initial = normalize(fromHistory);
+
+          // Don’t restore transient screens on a fresh load without state.
+          if (EPHEMERAL_SCREENS.has(initial) && !state.currentBarcode) initial = "scan";
+
+          try {
+            if (!history.state?.screen) {
+              history.replaceState({ screen: initial }, "", location.href);
+            }
+          } catch {
+            // ignore
+          }
+
+          showScreen(initial);
+
+          window.addEventListener("popstate", (e) => {
+            const next = normalize(e.state?.screen);
+            if (EPHEMERAL_SCREENS.has(next) && !state.currentBarcode) {
+              showScreen("scan");
+              return;
+            }
+            showScreen(next);
+          });
+        }
+
+        M.nav = { init, go, back };
       })(window.NutriScan);
 
 (function healthModule(M) {
@@ -1005,7 +1083,8 @@
             M.scanner.stopScanner({ releaseCamera: true });
           }
 
-          showScreen("loading");
+          if (M.nav && typeof M.nav.go === "function") M.nav.go("loading");
+          else showScreen("loading");
           await sleep(140); // lets the loading animation breathe
 
           try {
@@ -1020,7 +1099,8 @@
             renderNutritionTable(product);
             renderIngredients(product);
 
-            showScreen("result");
+            if (M.nav && typeof M.nav.go === "function") M.nav.go("result", { replace: true });
+            else showScreen("result");
 
             addToHistory({
               barcode: code,
@@ -1066,7 +1146,8 @@
             els.errTitle.textContent = title;
             els.errMsg.textContent = msg;
             els.errInput.value = code;
-            showScreen("error");
+            if (M.nav && typeof M.nav.go === "function") M.nav.go("error", { replace: true });
+            else showScreen("error");
           }
         }
 
@@ -1620,18 +1701,24 @@
         const { els, state } = M;
         const { showScreen, openModal, closeModal, toast } = M.util;
 
+        if (M.nav && typeof M.nav.init === "function") {
+          M.nav.init();
+        }
+
         // Bottom nav
         document.querySelectorAll(".nav-btn").forEach((b) => {
           b.addEventListener("click", () => {
             const target = b.dataset.screen;
             if (!target) return;
-            showScreen(target);
+            if (M.nav && typeof M.nav.go === "function") M.nav.go(target);
+            else showScreen(target);
           });
         });
 
         // FAB (scan / stop)
         els.fab.addEventListener("click", () => {
-          showScreen("scan");
+          if (M.nav && typeof M.nav.go === "function") M.nav.go("scan");
+          else showScreen("scan");
           if (state.scanning) M.scanner.stopScanner();
           else M.scanner.startScanner();
         });
@@ -1671,10 +1758,11 @@
         });
 
         // Result / error controls
-        els.btnBackToScan.addEventListener("click", () => showScreen("scan"));
-        els.btnErrorBack.addEventListener("click", () => showScreen("scan"));
+        els.btnBackToScan.addEventListener("click", () => (M.nav ? M.nav.back() : showScreen("scan")));
+        els.btnErrorBack.addEventListener("click", () => (M.nav ? M.nav.back() : showScreen("scan")));
         els.errScanAgain.addEventListener("click", () => {
-          showScreen("scan");
+          if (M.nav && typeof M.nav.go === "function") M.nav.go("scan", { replace: true });
+          else showScreen("scan");
           M.scanner.startScanner();
         });
 
