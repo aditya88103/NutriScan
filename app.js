@@ -899,6 +899,25 @@
           return track;
         }
 
+        function getAdvancedCameraConstraints({ torch = false } = {}) {
+          const advanced = [
+            { focusMode: "continuous" },
+            { exposureMode: "continuous" },
+            { whiteBalanceMode: "continuous" },
+          ];
+          if (torch) advanced.push({ torch: true });
+          return advanced;
+        }
+
+        function buildVideoConstraints({ torch = false } = {}) {
+          return {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            advanced: getAdvancedCameraConstraints({ torch }),
+          };
+        }
+
         function getActiveVideoTrack() {
           const fromState = getLiveVideoTrack(state.cameraStream);
           if (fromState) return fromState;
@@ -952,7 +971,20 @@
 
           const ok = await applyTorchState(target);
           if (!ok && target) {
-            await sleep(250);
+            // Try restarting with torch preference for stubborn devices
+            if (state.scannerEngine === "barcode-detector") {
+              try {
+                await ensureCameraStream({ forceNew: true });
+              } catch {
+                // ignore
+              }
+            } else if (state.scannerEngine === "quagga") {
+              stopScanner({ releaseCamera: true, keepTorch: true });
+              await sleep(180);
+              startScanner();
+              await sleep(350);
+            }
+
             const ok2 = await applyTorchState(target);
             if (!ok2) {
               state.torchOn = false;
@@ -1004,7 +1036,7 @@
           return video;
         }
 
-        async function ensureCameraStream() {
+        async function ensureCameraStream({ forceNew = false } = {}) {
           clearCameraReleaseTimer();
 
           if (!navigator.mediaDevices?.getUserMedia) {
@@ -1012,7 +1044,7 @@
           }
 
           // Reuse an existing live stream so the browser doesn't re-prompt.
-          if (state.cameraStream && getLiveVideoTrack(state.cameraStream)) {
+          if (!forceNew && state.cameraStream && getLiveVideoTrack(state.cameraStream)) {
             const video = ensureScannerVideoEl();
             if (video.srcObject !== state.cameraStream) video.srcObject = state.cameraStream;
             try {
@@ -1023,16 +1055,28 @@
             return { stream: state.cameraStream, video };
           }
 
-          const constraints = {
-            audio: false,
-            video: {
-              facingMode: { ideal: "environment" },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
-            },
+          if (forceNew && state.cameraStream) {
+            releaseCamera();
+          }
+
+          const requestStream = async (withTorch) => {
+            const constraints = {
+              audio: false,
+              video: buildVideoConstraints({ torch: withTorch }),
+            };
+            return navigator.mediaDevices.getUserMedia(constraints);
           };
 
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          let stream;
+          try {
+            stream = await requestStream(state.torchOn);
+          } catch (err) {
+            if (state.torchOn) {
+              stream = await requestStream(false);
+            } else {
+              throw err;
+            }
+          }
           state.cameraStream = stream;
 
           const video = ensureScannerVideoEl();
@@ -1046,7 +1090,13 @@
 
           const track = getLiveVideoTrack(stream);
           await applyBestEffortAutofocus(track);
-          if (state.torchOn) await applyTorchState(true);
+          if (state.torchOn) {
+            const ok = await applyTorchState(true);
+            if (!ok) {
+              state.torchOn = false;
+              setTorchButton(false);
+            }
+          }
 
           return { stream, video };
         }
@@ -1147,16 +1197,7 @@
               name: "Live",
               type: "LiveStream",
               target: els.scanner,
-              constraints: {
-                facingMode: { ideal: "environment" },
-                width: { ideal: 1920 },
-                height: { ideal: 1080 },
-                advanced: [
-                  { focusMode: "continuous" },
-                  { exposureMode: "continuous" },
-                  { whiteBalanceMode: "continuous" },
-                ],
-              },
+              constraints: buildVideoConstraints({ torch: state.torchOn }),
               area: { top: "35%", right: "10%", left: "10%", bottom: "35%" },
             },
             locate: true,
@@ -1271,7 +1312,7 @@
           startQuagga(token);
         }
 
-        function stopScanner({ releaseCamera: shouldReleaseCamera = false } = {}) {
+        function stopScanner({ releaseCamera: shouldReleaseCamera = false, keepTorch = false } = {}) {
           state.scanToken++;
 
           const wasScanning = state.scanning;
@@ -1283,7 +1324,7 @@
 
           stopBarcodeDetector();
           stopQuagga();
-          if (state.torchOn) {
+          if (!keepTorch && state.torchOn) {
             state.torchOn = false;
             setTorchButton(false);
             applyTorchState(false);

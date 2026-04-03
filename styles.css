@@ -458,12 +458,23 @@
       .icon-btn--torch {
         position: absolute;
         right: 14px;
-        bottom: calc(var(--nav-h) + 110px);
+        bottom: calc(var(--nav-h) + 90px);
         pointer-events: auto;
+        width: 46px;
+        height: 46px;
+        border-color: rgba(255, 200, 0, 0.55);
+        background: rgba(255, 200, 0, 0.18);
+      }
+
+      .icon-btn--torch .icon {
+        stroke: rgba(255, 200, 0, 0.95);
       }
 
       .icon-btn--torch.is-active {
-        box-shadow: 0 8px 24px rgba(255, 183, 3, 0.22);
+        background: rgba(255, 200, 0, 0.32);
+        box-shadow:
+          0 10px 26px rgba(255, 200, 0, 0.35),
+          0 0 0 2px rgba(255, 200, 0, 0.25);
       }
 
       .scan-reticle {
