@@ -1,0 +1,17 @@
+{
+  "name": "NutriScan",
+  "short_name": "NutriScan",
+  "description": "Fast and privacy-first barcode health scanner powered by Open Food Facts.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F0F1A",
+  "theme_color": "#00c9a7",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
