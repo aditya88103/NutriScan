@@ -1,4 +1,4 @@
-﻿:root {
+:root {
         color-scheme: dark;
 
         --bg: #181e2b;
@@ -29,6 +29,7 @@
 
       * {
         box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
       }
 
       html,
@@ -215,10 +216,10 @@
         -webkit-backdrop-filter: blur(18px);
         transition: transform 300ms cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 300ms ease, border-color 300ms ease;
       }
-      .card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
-        border-color: rgba(255, 255, 255, 0.12);
+      .card:active {
+        transform: scale(0.98);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        border-color: rgba(255, 255, 255, 0.15);
       }
 
       .card.pad {
@@ -272,9 +273,9 @@
         background: rgba(255, 255, 255, 0.03);
         transition: transform 250ms ease, background 250ms ease;
       }
-      .fitem:hover {
-        background: rgba(255, 255, 255, 0.06);
-        transform: translateX(2px);
+      .fitem:active {
+        background: rgba(255, 255, 255, 0.08);
+        transform: scale(0.97);
       }
 
       .ficon {
@@ -735,16 +736,24 @@
         box-shadow: 0 0 0 4px rgba(0, 201, 167, 0.12);
       }
 
+      @keyframes gradientPulse {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
       .btn {
         border: 0;
         cursor: pointer;
         border-radius: 14px;
-        padding: 12px 14px;
-        font-weight: 700;
-        background: linear-gradient(180deg, rgba(53, 255, 225, 0.92), rgba(0, 201, 167, 0.92));
+        padding: 14px 16px;
+        font-weight: 800;
+        background: linear-gradient(135deg, rgba(53, 255, 225, 0.95), rgba(0, 201, 167, 0.95), rgba(53, 255, 225, 0.95));
+        background-size: 200% 200%;
+        animation: gradientPulse 3s ease infinite;
         color: #04110d;
-        box-shadow: 0 14px 30px rgba(0, 201, 167, 0.18);
-        transition: transform 250ms ease, box-shadow 250ms ease, filter 250ms ease;
+        box-shadow: 0 14px 30px rgba(0, 201, 167, 0.25);
+        transition: transform 250ms cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 250ms ease, filter 250ms ease;
       }
       .btn:hover {
         transform: translateY(-1px);
@@ -753,7 +762,9 @@
       }
 
       .btn:active {
-        transform: translateY(1px);
+        transform: scale(0.96);
+        box-shadow: 0 8px 16px rgba(0, 201, 167, 0.15);
+        filter: brightness(0.9);
       }
 
       .btn--ghost {

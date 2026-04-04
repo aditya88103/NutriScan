@@ -1774,18 +1774,33 @@
         // Result / error controls
         els.btnBackToScan.addEventListener("click", () => (M.nav ? M.nav.back() : showScreen("scan")));
         if (els.btnShare) {
-          els.btnShare.addEventListener("click", () => {
-            if (navigator.share && state.currentProduct) {
-              const name = state.currentProduct.product_name || "a product";
-              const score = els.scoreNum.textContent || "?";
-              if (navigator.vibrate) navigator.vibrate(20);
-              navigator.share({
+          els.btnShare.addEventListener("click", async () => {
+            if (!state.currentProduct) {
+              toast("No product data to share.");
+              return;
+            }
+            const name = state.currentProduct.product_name || "a product";
+            const score = els.scoreNum.textContent || "?";
+            if (!navigator.share) {
+              try {
+                await navigator.clipboard.writeText(`NutriScan Result: I just scanned ${name} and it scored ${score}/10!`);
+                toast("Link copied to clipboard (share not supported).");
+              } catch (e) {
+                toast("Share feature not available.");
+              }
+              return;
+            }
+            if (navigator.vibrate) navigator.vibrate(20);
+            try {
+              await navigator.share({
                 title: 'NutriScan Result',
                 text: `I just scanned ${name} and it scored ${score}/10 on NutriScan!`,
                 url: window.location.href,
-              }).catch(() => {});
-            } else {
-              toast("Sharing is not supported on this device.");
+              });
+            } catch (err) {
+              if (err.name !== "AbortError") {
+                toast("Share failed: " + err.message);
+              }
             }
           });
         }
