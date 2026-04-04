@@ -481,7 +481,7 @@
         position: absolute;
         left: 50%;
         bottom: calc(var(--nav-h) + 8px);
-        transform: translateX(-50%);
+        transform: translateX(-50%) scale(1);
         width: 74px;
         height: 74px;
         border-radius: 999px;
@@ -493,6 +493,15 @@
         place-items: center;
         color: #03110d;
         z-index: 50;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .fab.fab--hidden {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.7);
+        pointer-events: none;
       }
 
       .fab::before {
