@@ -1,6 +1,6 @@
 (function initMintScan() {
         const $ = (sel) => document.querySelector(sel);
-        const VERSION = "20260404-03";
+        const VERSION = "20260404-04";
 
         window.NutriScan = {
           VERSION,
@@ -27,7 +27,6 @@
             modalBackdrop: $("#modal-backdrop"),
             btnManualOpen: $("#btn-manual-open"),
             btnManualClose: $("#btn-manual-close"),
-            btnRefresh: $("#btn-refresh"),
             manualInput: $("#manual-input"),
             manualLookup: $("#manual-lookup"),
             manualPaste: $("#manual-paste"),
@@ -1798,19 +1797,6 @@
 
         // History
         els.btnClearHistory.addEventListener("click", () => M.history.clearHistory());
-
-        // Refresh button logic
-        if (els.btnRefresh) {
-          els.btnRefresh.addEventListener("click", () => {
-             const icon = els.btnRefresh.querySelector('svg');
-             if (icon) {
-               icon.style.transition = 'transform 0.4s ease-out';
-               icon.style.transform = 'rotate(360deg)';
-             }
-             if (navigator.vibrate) navigator.vibrate(20);
-             setTimeout(() => window.location.reload(), 250);
-          });
-        }
 
         // Native custom pull-to-refresh for web app body
         let ptrStartY = 0;
