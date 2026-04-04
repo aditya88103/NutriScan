@@ -1810,6 +1810,16 @@
           }, { passive: true });
         }
 
+        // Restore FAB immediately when switching away from About to any other screen
+        document.querySelectorAll(".nav-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const target = btn.dataset.screen;
+            if (target !== "about" && els.fab) {
+              els.fab.classList.remove("fab--hidden");
+            }
+          });
+        });
+
         // Native custom pull-to-refresh for web app body
         let ptrStartY = 0;
         let ptrCurrentY = 0;

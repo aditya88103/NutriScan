@@ -421,6 +421,18 @@
         color: rgba(255, 255, 255, 0.9);
       }
 
+      .badge--linkedin {
+        border-color: rgba(10, 102, 194, 0.45);
+        background: rgba(10, 102, 194, 0.15);
+        color: #60a8f0;
+      }
+
+      .badge--instagram {
+        border-color: rgba(225, 48, 108, 0.4);
+        background: linear-gradient(135deg, rgba(131, 58, 180, 0.12), rgba(225, 48, 108, 0.12), rgba(253, 175, 64, 0.12));
+        color: #f472b6;
+      }
+
       /* Bottom Nav */
       .bottom-nav {
         position: absolute;
