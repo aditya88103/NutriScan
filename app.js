@@ -1,6 +1,6 @@
 (function initMintScan() {
         const $ = (sel) => document.querySelector(sel);
-        const VERSION = "20260404-01";
+        const VERSION = "20260404-02";
 
         window.NutriScan = {
           VERSION,
@@ -41,6 +41,7 @@
             btnErrorBack: $("#btn-error-back"),
             errTitle: $("#err-title"),
             errMsg: $("#err-msg"),
+            errContribute: $("#err-contribute-link"),
 
             // Product
             pImage: $("#p-image"),
@@ -1101,7 +1102,7 @@
             let title = "We couldn't find that product";
 
             if (e?.code === "NOT_FOUND") {
-              msg = "If a product isn’t found, try scanning again (steady + good light) or use Manual entry. You can also add or improve products on Open Food Facts to help everyone.";
+              msg = "We couldn't find this barcode! Try scanning again with steady light, or enter it manually.";
             } else if (e?.code === "RATE_LIMIT") {
               title = "Too many requests";
               msg = "Open Food Facts is rate-limiting. Please wait 20 seconds and try again.";
@@ -1118,6 +1119,9 @@
 
             els.errTitle.textContent = title;
             els.errMsg.textContent = msg;
+            if (els.errContribute) {
+              els.errContribute.style.display = (e?.code === "NOT_FOUND") ? "grid" : "none";
+            }
             els.errInput.value = code;
             if (M.nav && typeof M.nav.go === "function") M.nav.go("error", { replace: true });
             else showScreen("error");
